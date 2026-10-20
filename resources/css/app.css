@@ -1,0 +1,59 @@
+.sidebar-scroll {
+    height: calc(100vh - 70px);
+    overflow-y: auto;
+}
+
+@media (max-width: 767.98px) {
+    .vertical-sidebar-enable .navbar-brand-box {
+        display: block;
+    }
+}
+
+.sidebar-overlay {
+    display: block;
+    border: 0;
+    padding: 0;
+}
+
+.account-menu {
+    position: relative;
+}
+
+.account-menu > summary {
+    list-style: none;
+}
+
+.account-menu > summary::-webkit-details-marker {
+    display: none;
+}
+
+.account-menu .dropdown-menu {
+    right: 0;
+    left: auto;
+    top: 100%;
+}
+
+.skip-link {
+    position: fixed;
+    top: 8px;
+    left: 8px;
+    z-index: 1100;
+    padding: 12px;
+    background: white;
+    color: #405189;
+}
+
+.welcome-card {
+    background: linear-gradient(115deg, #e9edf8, #f4f8fc);
+}
+
+.page-title-box h1 {
+    font-size: 16px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+:focus-visible {
+    outline: 2px solid #405189;
+    outline-offset: 3px;
+}
