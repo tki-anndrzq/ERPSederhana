@@ -8,6 +8,6 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // Buat akun secara eksplisit melalui php artisan app:create-user.
+        $this->call(AdminUserSeeder::class);
     }
 }

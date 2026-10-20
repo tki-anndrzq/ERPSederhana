@@ -34,6 +34,21 @@ const page = usePage();
                             <span>Dashboard</span>
                         </Link>
                     </li>
+
+                    <li class="nav-item">
+                        <Link
+                            href="/packages"
+                            aria-label="Paket Sewa"
+                            class="nav-link menu-link"
+                            :class="{ active: page.url.split('?')[0] === '/packages' }"
+                            :aria-current="page.url.split('?')[0] === '/packages' ? 'page' : undefined"
+                            @click="$emit('navigate')"
+                        >
+                            <i class="ri-package-2-line" aria-hidden="true"></i>
+                            <span>Paket Sewa</span>
+                        </Link>
+                    </li>
+
                     <li class="menu-title"><span>Referensi UI</span></li>
                     <li class="nav-item">
                         <Link

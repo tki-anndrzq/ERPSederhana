@@ -2,10 +2,12 @@
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
+use App\Http\Controllers\Dashboard\RentalPackage;
 use App\Http\Controllers\DashboardController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+
 
 Route::get('/', fn (Request $request) => redirect()->route(
     $request->user() ? 'dashboard' : 'login'
@@ -17,6 +19,12 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+    // Package Routes
+    Route::get('/packages', [RentalPackage::class, 'index'])->name('packages.dashboard');
+    Route::post('/packages', [RentalPackage::class, 'store'])->name('packages.store');
+    Route::put('/packages/{id}', [RentalPackage::class, 'update'])->whereNumber('id')->name('packages.update');
+    Route::delete('/packages/{id}', [RentalPackage::class, 'destroy'])->whereNumber('id')->name('packages.destroy');
+
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/ui/datatables', fn () => Inertia::render('Ui/DataTables'))->name('ui.datatables');
     Route::post('/logout', [LogoutController::class, 'logout'])->name('logout');

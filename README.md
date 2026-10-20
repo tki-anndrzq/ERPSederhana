@@ -19,10 +19,10 @@ Laravel. Tidak membutuhkan project frontend terpisah, Vue Router, atau Pinia.
 
 ## Kebutuhan
 
-- PHP 8.2 dengan ekstensi Laravel, PDO MySQL/MariaDB; PDO SQLite untuk tes.
+- PHP 8.2 dengan ekstensi Laravel dan PDO sesuai database.
 - Composer 2.
 - Node.js 22.12+ atau Node.js 24 dan npm.
-- MySQL/MariaDB untuk penggunaan aplikasi.
+- MySQL/MariaDB atau PostgreSQL untuk penggunaan aplikasi.
 
 Project masih menggunakan Laravel 10 dari template asal. Versi ini sudah melewati
 masa dukungan keamanan; upgrade framework dan audit dependensi perlu ditangani
@@ -37,18 +37,23 @@ npm.cmd ci
 
 Hanya jika `.env` belum ada, salin `.env.example` menjadi `.env`, lalu jalankan
 `php artisan key:generate`. Atur `APP_URL` dan koneksi database di `.env` lokal.
-Buat database kosong terlebih dahulu melalui MySQL/MariaDB.
+Buat database kosong terlebih dahulu melalui MySQL/MariaDB atau PostgreSQL.
 
 Untuk database baru yang sudah dikonfigurasi:
 
 ```powershell
-php artisan migrate
-php artisan app:create-user
+php artisan migrate --seed
 ```
 
-Command pembuatan akun meminta nama, email, password, dan konfirmasi. Input
-password disembunyikan; minimal 12 karakter. Tidak ada akun/password default
-dan seeder default tidak membuat akun.
+Seeder membuat akun demo `admin@gmail.com` dengan password contoh `123123`
+pada environment local/testing. Password disimpan sebagai hash menggunakan
+`Hash::make`. Jika akun sudah ada, seeder tidak membuat akun baru atau mengganti
+password/data akun tersebut. Seeder demo tidak membuat akun di production.
+
+Jika tabel sudah tersedia, cukup jalankan `php artisan db:seed`. Untuk akun
+dengan nama/email pilihan sendiri, alternatifnya `php artisan app:create-user`.
+Command tersebut meminta nama, email, password, dan konfirmasi; input password
+disembunyikan dan minimal 12 karakter.
 
 Untuk database template yang sudah memiliki pengguna, akun lama tetap dapat
 digunakan. Tidak perlu reset database, mengubah APP_KEY yang sudah ada, atau
@@ -59,7 +64,7 @@ mengulang pembuatan akun. Proses konversi tidak menjalankan migrasi database.
 Terminal pertama:
 
 ```powershell
-php artisan serve --host=127.0.0.1 --port=8000
+php artisan serve
 ```
 
 Terminal kedua:
@@ -116,13 +121,9 @@ lain bisa diambil dan dikonversi bertahap tanpa memulihkan controller CRUD lama.
 ## Pemeriksaan
 
 ```powershell
-php artisan test
 npm.cmd run build
 php artisan route:list --except-vendor
 ```
-
-Tes PHP menggunakan SQLite **in-memory** secara eksplisit lewat `phpunit.xml`,
-tidak menggunakan database dari `.env`.
 
 ## Cadangan konversi
 
