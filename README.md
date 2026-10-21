@@ -14,15 +14,17 @@ Laravel. Tidak membutuhkan project frontend terpisah, Vue Router, atau Pinia.
 - Semua view asli tersedia sebagai referensi di `resources/template-reference/views`.
 - DataTables versi Vue tersedia melalui menu **Referensi UI → DataTables**
   (`/ui/datatables`), dengan search, sort, pagination, responsive, dan data reaktif.
-- Belum ada modul booking, inventory rental, billing, payment gateway, atau n8n.
-  Integrasi tersebut merupakan pengembangan berikutnya untuk technical test.
+- CRUD paket sewa dan perangkat WiFi.
+- Pemesanan: daftar, form tambah, detail, perhitungan harga, dan pembatalan.
+- Billing, payment gateway, penyerahan/pengembalian perangkat, dan n8n
+  merupakan pengembangan berikutnya untuk technical test.
 
 ## Kebutuhan
 
 - PHP 8.2 dengan ekstensi Laravel dan PDO sesuai database.
 - Composer 2.
 - Node.js 22.12+ atau Node.js 24 dan npm.
-- MySQL/MariaDB atau PostgreSQL untuk penggunaan aplikasi.
+- PostgreSQL dengan ekstensi PHP `pdo_pgsql`.
 
 Project masih menggunakan Laravel 10 dari template asal. Versi ini sudah melewati
 masa dukungan keamanan; upgrade framework dan audit dependensi perlu ditangani
@@ -37,7 +39,7 @@ npm.cmd ci
 
 Hanya jika `.env` belum ada, salin `.env.example` menjadi `.env`, lalu jalankan
 `php artisan key:generate`. Atur `APP_URL` dan koneksi database di `.env` lokal.
-Buat database kosong terlebih dahulu melalui MySQL/MariaDB atau PostgreSQL.
+Buat database PostgreSQL kosong terlebih dahulu.
 
 Untuk database baru yang sudah dikonfigurasi:
 
@@ -50,7 +52,9 @@ pada environment local/testing. Password disimpan sebagai hash menggunakan
 `Hash::make`. Jika akun sudah ada, seeder tidak membuat akun baru atau mengganti
 password/data akun tersebut. Seeder demo tidak membuat akun di production.
 
-Jika tabel sudah tersedia, cukup jalankan `php artisan db:seed`. Untuk akun
+Untuk database yang sudah digunakan, jalankan `php artisan migrate` agar tabel
+dan perubahan kolom terbaru diterapkan, lalu `php artisan db:seed` bila memerlukan
+akun demo. Untuk akun
 dengan nama/email pilihan sendiri, alternatifnya `php artisan app:create-user`.
 Command tersebut meminta nama, email, password, dan konfirmasi; input password
 disembunyikan dan minimal 12 karakter.
@@ -105,7 +109,88 @@ Tidak ada migrasi bisnis lama. UUID dan kolom `gender` template asal tetap
 dipertahankan agar database lama kompatibel. Factory disesuaikan dengan skema
 tersebut; kolom gender tidak digunakan oleh tampilan starter.
 
+## Halaman Data Master
+
+Halaman paket sewa dan perangkat dipisah agar alurnya mudah dibaca:
+
+```text
+resources/js/Pages/Dashboard/
+  Package/
+    index.vue   daftar paket dan tombol hapus
+    create.vue  form tambah paket
+    edit.vue    form edit paket
+  Devices/
+    index.vue   daftar perangkat dan tombol hapus
+    create.vue  form tambah perangkat
+    edit.vue    form edit perangkat
+```
+
+Controller tetap di `app/Http/Controllers/Dashboard`. Method `index` mengambil
+daftar, `create` menampilkan form tambah, `store` menyimpan data baru, `edit`
+mengambil data untuk form edit, `update` menyimpan perubahan, dan `destroy`
+menghapus data. Validasi langsung di controller; form Vue memakai `useForm`.
+Setelah berhasil menyimpan, pengguna kembali ke daftar dengan pesan berhasil.
+
+## Pemesanan
+
+Buka menu **Transaksi > Pemesanan** (`/bookings`), lalu klik **Tambah Pemesanan**.
+Siapkan minimal satu paket aktif dan satu perangkat berstatus Tersedia.
+
+- `app/Http/Controllers/Dashboard/BookingController.php` menangani daftar,
+  form tambah, simpan, detail, dan pembatalan. Validasi langsung di controller
+  mengikuti pola controller paket dan perangkat.
+- `resources/js/Pages/Dashboard/Bookings/index.vue` menampilkan daftar.
+- `create.vue` berisi form pelanggan, tujuan perjalanan, paket, perangkat, dan tanggal.
+- `show.vue` menampilkan rincian dan tombol pembatalan.
+- Model `Booking` terhubung dengan `Customer`, `RentalPackage`, dan `Devices`.
+  Relasi dimuat menggunakan `with()` untuk menghindari N+1.
+
+Satu pemesanan memakai satu perangkat. Untuk versi awal ini, data pelanggan
+dicatat baru pada setiap pemesanan. Belum ada pemilihan pelanggan lama.
+Tujuan perjalanan disimpan di `bookings.destination`.
+
+Backend menghitung hari secara inklusif: tanggal 21 sampai 23 adalah 3 hari,
+tanggal yang sama adalah 1 hari, maksimal 365 hari. Harga paket per hari disalin
+ke `daily_rate`, lalu dikalikan jumlah hari untuk menentukan `total_amount`.
+Perubahan harga paket setelahnya tidak mengubah harga pemesanan lama.
+
+Saat disimpan, pemesanan berstatus `pending_payment` dan perangkat `reserved`.
+Hanya paket aktif dan perangkat `available` yang bisa dipilih. Perangkat langsung
+dicadangkan, termasuk untuk sewa di masa depan; belum ada penjadwalan perangkat
+berdasarkan rentang tanggal. Transaksi database dan `lockForUpdate()` menjaga
+agar perangkat tidak dipesan dua admin bersamaan.
+
+Pemesanan yang masih `pending_payment` dapat dibatalkan menjadi `cancelled`;
+perangkat kembali `available`. Riwayat pemesanan tetap disimpan. Perangkat yang
+sedang Dipesan/Disewa tidak dapat diedit dari master perangkat, dan perangkat
+yang memiliki riwayat pemesanan tidak dapat dihapus karena foreign key.
+
+Status perangkat menggunakan enum pada migration asli tabel `devices`, dengan
+nilai `available`, `reserved`, `rented`, dan `maintenance`; default `available`.
+Admin hanya mengatur Tersedia/Perawatan dari master;
+status Dipesan/Disewa mengikuti transaksi. Alur pembayaran dan perubahan ke
+Disewa saat penyerahan akan ditambahkan pada tahap berikutnya.
+
+## Dropdown Select2
+
+Dropdown paket/perangkat pada pemesanan dan status pada form perangkat memakai
+Select2. Dependensi jQuery dan Select2 terpasang melalui npm dan dibundel Vite.
+Integrasi berada di `resources/js/directives/select2.js`, didaftarkan pada `app.js`.
+
+Untuk dropdown berikutnya, tetap gunakan select biasa dengan `v-model`, lalu
+tambahkan `v-select2`. Daftar pilihan tetap ditulis menggunakan option dan v-for.
+Directive meneruskan pilihan ke Vue dan membersihkan Select2 saat pindah halaman.
+
+```html
+<select v-select2 v-model="form.status">
+    <option value="available">Tersedia</option>
+    <option value="maintenance">Perawatan</option>
+</select>
+```
+
 ## Menggunakan DataTables
+
+
 
 Gunakan `resources/js/Components/BaseDataTable.vue` dengan props `data`,
 `columns`, dan `options` (opsional). Contoh lengkap berada di

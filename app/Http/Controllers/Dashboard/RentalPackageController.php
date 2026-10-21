@@ -4,12 +4,13 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
 use App\Models\RentalPackage;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class RentalPackageController extends Controller
 {
-      public function index()
+    public function index()
     {
         $package = RentalPackage::orderBy('id', 'desc')->get();
 
@@ -17,6 +18,20 @@ class RentalPackageController extends Controller
             'package' => $package,
             'success' => session('success'),
             'error' => session('error'),
+        ]);
+    }
+
+    public function create()
+    {
+        return Inertia::render('Dashboard/Package/create');
+    }
+
+    public function edit($id)
+    {
+        $package = RentalPackage::findOrFail($id);
+
+        return Inertia::render('Dashboard/Package/edit', [
+            'package' => $package,
         ]);
     }
 
@@ -79,7 +94,7 @@ class RentalPackageController extends Controller
             $package->delete();
         } catch (QueryException $exception) {
             // Kode ini menandakan ada data lain yang masih memakai paket.
-            if (in_array($exception->getCode(), ['23503', '23000'])) {
+            if ($exception->getCode() === '23503') {
                 return redirect()->route('packages.dashboard')
                     ->with('error', 'Paket masih digunakan data lain. Nonaktifkan paket melalui Edit.');
             }

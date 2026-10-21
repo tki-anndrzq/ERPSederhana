@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
+use App\Http\Controllers\Dashboard\BookingController;
 use App\Http\Controllers\Dashboard\DevicesController;
 use App\Http\Controllers\Dashboard\RentalPackageController;
 use App\Http\Controllers\DashboardController;
@@ -23,15 +24,26 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     // Package Routes
     Route::get('/packages', [RentalPackageController::class, 'index'])->name('packages.dashboard');
+    Route::get('/packages/create', [RentalPackageController::class, 'create'])->name('packages.create');
+    Route::get('/packages/{id}/edit', [RentalPackageController::class, 'edit'])->whereNumber('id')->name('packages.edit');
     Route::post('/packages', [RentalPackageController::class, 'store'])->name('packages.store');
     Route::put('/packages/{id}', [RentalPackageController::class, 'update'])->whereNumber('id')->name('packages.update');
     Route::delete('/packages/{id}', [RentalPackageController::class, 'destroy'])->whereNumber('id')->name('packages.destroy');
 
     //Device Routes
     Route::get('/devices', [DevicesController::class, 'index'])->name('devices.dashboard');
+    Route::get('/devices/create', [DevicesController::class, 'create'])->name('devices.create');
+    Route::get('/devices/{id}/edit', [DevicesController::class, 'edit'])->whereNumber('id')->name('devices.edit');
     Route::post('/devices', [DevicesController::class, 'store'])->name('devices.store');
     Route::put('/devices/{id}', [DevicesController::class, 'update'])->whereNumber('id')->name('devices.update');
     Route::delete('/devices/{id}', [DevicesController::class, 'destroy'])->whereNumber('id')->name('devices.destroy');
+
+    // Pemesanan: daftar, form tambah, detail, dan pembatalan.
+    Route::get('/bookings', [BookingController::class, 'index'])->name('bookings.index');
+    Route::get('/bookings/create', [BookingController::class, 'create'])->name('bookings.create');
+    Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
+    Route::get('/bookings/{id}', [BookingController::class, 'show'])->whereNumber('id')->name('bookings.show');
+    Route::post('/bookings/{id}/cancel', [BookingController::class, 'cancel'])->whereNumber('id')->name('bookings.cancel');
 
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/ui/datatables', fn () => Inertia::render('Ui/DataTables'))->name('ui.datatables');

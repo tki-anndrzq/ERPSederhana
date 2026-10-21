@@ -15,7 +15,12 @@ return new class extends Migration
             $table->id();
             $table->string('code')->unique();
             $table->string('serial_number')->unique();
-            $table->boolean('status')->default(true);
+            $table->enum('status', [
+                'available',
+                'reserved',
+                'rented',
+                'maintenance',
+            ])->default('available');
             $table->text('note')->nullable();
             $table->timestamps();
         });

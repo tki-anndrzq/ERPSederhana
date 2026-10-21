@@ -16,7 +16,8 @@ class Devices extends Model
         'note',
     ];
 
-    protected $casts = [
-        'status' => 'boolean',
-    ];
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class, 'device_id');
+    }
 }

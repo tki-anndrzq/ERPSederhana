@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Devices;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class DevicesController extends Controller
@@ -20,12 +22,31 @@ class DevicesController extends Controller
         ]);
     }
 
+    public function create()
+    {
+        return Inertia::render('Dashboard/Devices/create');
+    }
+
+    public function edit($id)
+    {
+        $device = Devices::findOrFail($id);
+
+        if (in_array($device->status, ['reserved', 'rented'])) {
+            return redirect()->route('devices.dashboard')
+                ->with('error', 'Perangkat sedang dipesan atau disewa dan belum bisa diedit.');
+        }
+
+        return Inertia::render('Dashboard/Devices/edit', [
+            'device' => $device,
+        ]);
+    }
+
     public function store(Request $request)
     {
         $data = $request->validate([
             'code' => ['required', 'string', 'max:255', 'unique:devices,code'],
             'serial_number' => ['required', 'string', 'max:255', 'unique:devices,serial_number'],
-            'status' => ['required', 'boolean'],
+            'status' => ['required', 'in:available,maintenance'],
             'note' => ['nullable', 'string'],
         ], [
             'code.required' => 'Kode perangkat wajib diisi.',
@@ -33,7 +54,7 @@ class DevicesController extends Controller
             'serial_number.required' => 'Nomor seri wajib diisi.',
             'serial_number.unique' => 'Nomor seri sudah digunakan.',
             'status.required' => 'Status perangkat wajib diisi.',
-            'status.boolean' => 'Status perangkat tidak valid.',
+            'status.in' => 'Pilih status Tersedia atau Perawatan.',
         ]);
 
         Devices::create($data);
@@ -44,31 +65,45 @@ class DevicesController extends Controller
 
     public function update(Request $request, $id)
     {
-        $device = Devices::findOrFail($id);
+        return DB::transaction(function () use ($request, $id) {
+            $device = Devices::whereKey($id)->lockForUpdate()->firstOrFail();
 
-        $data = $request->validate([
-            'code' => ['required', 'string', 'max:255', 'unique:devices,code,' . $device->id],
-            'serial_number' => ['required', 'string', 'max:255', 'unique:devices,serial_number,' . $device->id],
-            'status' => ['required', 'boolean'],
-            'note' => ['nullable', 'string'],
-        ], [
-            'code.required' => 'Kode perangkat wajib diisi.',
-            'code.unique' => 'Kode perangkat sudah digunakan.',
-            'serial_number.required' => 'Nomor seri wajib diisi.',
-            'serial_number.unique' => 'Nomor seri sudah digunakan.',
-            'status.required' => 'Status perangkat wajib diisi.',
-            'status.boolean' => 'Status perangkat tidak valid.',
-        ]);
+            // Perangkat yang sedang digunakan diatur melalui proses pemesanan.
+            if (in_array($device->status, ['reserved', 'rented'])) {
+                throw ValidationException::withMessages([
+                    'status' => 'Perangkat sedang dipesan atau disewa dan belum bisa diedit.',
+                ]);
+            }
 
-        $device->update($data);
+            $data = $request->validate([
+                'code' => ['required', 'string', 'max:255', 'unique:devices,code,' . $device->id],
+                'serial_number' => ['required', 'string', 'max:255', 'unique:devices,serial_number,' . $device->id],
+                'status' => ['required', 'in:available,maintenance'],
+                'note' => ['nullable', 'string'],
+            ], [
+                'code.required' => 'Kode perangkat wajib diisi.',
+                'code.unique' => 'Kode perangkat sudah digunakan.',
+                'serial_number.required' => 'Nomor seri wajib diisi.',
+                'serial_number.unique' => 'Nomor seri sudah digunakan.',
+                'status.required' => 'Status perangkat wajib diisi.',
+                'status.in' => 'Pilih status Tersedia atau Perawatan.',
+            ]);
 
-        return redirect()->route('devices.dashboard')
-            ->with('success', 'Perangkat berhasil diperbarui.');
+            $device->update($data);
+
+            return redirect()->route('devices.dashboard')
+                ->with('success', 'Perangkat berhasil diperbarui.');
+        });
     }
 
     public function destroy($id)
     {
         $device = Devices::findOrFail($id);
+
+        if (in_array($device->status, ['reserved', 'rented'])) {
+            return redirect()->route('devices.dashboard')
+                ->with('error', 'Perangkat yang sedang dipesan atau disewa tidak bisa dihapus.');
+        }
 
         try {
             $device->delete();

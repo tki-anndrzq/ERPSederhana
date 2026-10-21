@@ -3,6 +3,13 @@ import { Link, usePage } from '@inertiajs/vue3';
 
 defineEmits(['navigate']);
 const page = usePage();
+
+// Halaman tambah dan edit masih termasuk menu yang sama.
+function menuAktif(menu) {
+    const url = page.url.split('?')[0];
+
+    return url === menu || url.startsWith(menu + '/');
+}
 </script>
 
 <template>
@@ -41,8 +48,8 @@ const page = usePage();
                             href="/packages"
                             aria-label="Paket Sewa"
                             class="nav-link menu-link"
-                            :class="{ active: page.url.split('?')[0] === '/packages' }"
-                            :aria-current="page.url.split('?')[0] === '/packages' ? 'page' : undefined"
+                            :class="{ active: menuAktif('/packages') }"
+                            :aria-current="menuAktif('/packages') ? 'page' : undefined"
                             @click="$emit('navigate')"
                         >
                             <i class="ri-dropbox-line" aria-hidden="true"></i>
@@ -54,12 +61,27 @@ const page = usePage();
                             href="/devices"
                             aria-label="Perangkat"
                             class="nav-link menu-link"
-                            :class="{ active: page.url.split('?')[0] === '/devices' }"
-                            :aria-current="page.url.split('?')[0] === '/devices' ? 'page' : undefined"
+                            :class="{ active: menuAktif('/devices') }"
+                            :aria-current="menuAktif('/devices') ? 'page' : undefined"
                             @click="$emit('navigate')"
                         >
                             <i class="ri-wifi-line" aria-hidden="true"></i>
                             <span>Perangkat</span>
+                        </Link>
+                    </li>
+
+                    <li class="menu-title"><span>Transaksi</span></li>
+                    <li class="nav-item">
+                        <Link
+                            href="/bookings"
+                            aria-label="Pemesanan"
+                            class="nav-link menu-link"
+                            :class="{ active: page.url.split('?')[0].startsWith('/bookings') }"
+                            :aria-current="page.url.split('?')[0].startsWith('/bookings') ? 'page' : undefined"
+                            @click="$emit('navigate')"
+                        >
+                            <i class="ri-calendar-check-line" aria-hidden="true"></i>
+                            <span>Pemesanan</span>
                         </Link>
                     </li>
 
