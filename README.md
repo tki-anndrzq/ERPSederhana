@@ -3,7 +3,7 @@
 ## Instalasi
 
 Siapkan PHP 8.2, Composer 2, Node.js 22.12+ atau 24, npm, dan PostgreSQL.
-Aktifkan ekstensi PHP `pdo_pgsql`.
+Aktifkan ekstensi PHP `pdo_pgsql` dan `curl`.
 
 1. Buka terminal di folder project, lalu install dependensi:
 
@@ -28,11 +28,20 @@ Aktifkan ekstensi PHP `pdo_pgsql`.
    DB_DATABASE=rental_wifi
    DB_USERNAME=postgres
    DB_PASSWORD=isi_password_postgresql
-   MOCK_PAYMENT_ENABLED=true
+   MIDTRANS_SERVER_KEY=isi_server_key_sandbox_midtrans
+   MIDTRANS_IS_PRODUCTION=false
    ```
 
    Buat database `rental_wifi` di PostgreSQL terlebih dahulu. Sesuaikan nama
    database, port, username, dan password dengan konfigurasi komputermu.
+   Ambil Server Key dari **Settings > Access Keys** di dashboard Midtrans mode
+   **Sandbox**. Simpan key hanya di `.env`, jangan di Vue atau GitHub.
+
+   Setelah mengubah konfigurasi, jalankan:
+
+   ```powershell
+   php artisan config:clear
+   ```
 
 3. Pada instalasi baru, buat application key:
 
@@ -84,10 +93,24 @@ Aktifkan ekstensi PHP `pdo_pgsql`.
 5. **Bagikan invoice** dengan membuka Detail Pemesanan, lalu klik **Salin Link**.
    Pelanggan dapat membuka link invoice tanpa login ke dashboard.
 
-6. **Lakukan pembayaran simulasi** dari halaman invoice melalui tombol
-   **Bayar Sekarang**. Pilih simulasi berhasil atau gagal. Pembayaran saat ini
-   masih menggunakan mock, belum terhubung ke Midtrans.
-   Jika berhasil, invoice menjadi **Lunas** dan pemesanan **Dikonfirmasi**.
+6. **Bayar melalui Midtrans sandbox** dari halaman invoice melalui tombol
+   **Bayar Sekarang**. Pelanggan langsung diarahkan ke
+   checkout Midtrans dan memilih metode pembayaran di sana.
+   Selesaikan transaksi dengan [simulator sandbox Midtrans](https://docs.midtrans.com/docs/testing-payment-on-sandbox),
+   kembali ke aplikasi, lalu klik **Cek Status Pembayaran**.
+   Backend memeriksa status langsung ke Midtrans. Jika berhasil, invoice menjadi
+   **Lunas** dan pemesanan **Dikonfirmasi**. Perangkat tetap **Dipesan** sampai diserahkan.
+
+   Jika checkout ditutup, klik **Bayar Sekarang** pada invoice untuk membuka
+   checkout yang sama. Checkout berlaku 30 menit. Percobaan yang ditolak masih bisa diulang
+   melalui checkout yang sama. Setelah waktu habis, tunggu satu menit, lalu klik
+   **Cek Status Pembayaran** sebelum membuat pembayaran baru atau membatalkan pesanan.
+   Untuk checkout yang ditinggalkan sebelum memilih metode, sistem juga memeriksa
+   batas waktu ini dan jawaban transaksi tidak ditemukan dari Midtrans.
+   Jika checkout gagal dibuat dan URL belum tersimpan, minta admin memeriksa
+   referensinya di dashboard Midtrans dahulu. Sistem mempertahankan status pending
+   agar tidak membuat pembayaran ganda saat koneksi terputus. Setelah 31 menit,
+   gunakan **Cek Status Pembayaran** untuk memeriksa kembali sebelum mencoba lagi.
 
 7. **Serahkan perangkat** dari Detail Pemesanan setelah pembayaran lunas.
    Klik **Serahkan Perangkat** untuk mengubah status menjadi **Disewa**.
@@ -98,4 +121,13 @@ Aktifkan ekstensi PHP `pdo_pgsql`.
 
 Dashboard menampilkan ringkasan perangkat, penyewaan, pembayaran, dan jadwal
 pengembalian. Pemesanan yang masih **Menunggu Pembayaran** dapat dibatalkan
-melalui tombol **Batalkan Pemesanan** pada halaman detail.
+melalui tombol **Batalkan Pemesanan** pada halaman detail selama tidak ada
+pembayaran Midtrans yang masih pending.
+
+Untuk pembaruan status otomatis, saat aplikasi sudah memiliki URL publik,
+isi **Payment Notification URL** pada konfigurasi Midtrans dengan
+`https://domain-aplikasimu.com/midtrans/notification`.
+Webhook memeriksa signature dan mengambil ulang status dari Midtrans.
+Midtrans tidak bisa mengirim webhook ke localhost; gunakan tombol
+**Cek Status Pembayaran** saat menjalankan aplikasi lokal.
+Kembali dari checkout saja tidak menjadikan invoice lunas.

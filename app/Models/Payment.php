@@ -6,7 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class Payment extends Model
 {
-    protected $fillable = ['invoice_id', 'reference', 'method', 'amount', 'status', 'paid_at'];
+    protected $fillable = [
+        'invoice_id', 'reference', 'method', 'amount', 'status', 'paid_at', 'redirect_url',
+    ];
 
     protected $casts = [
         'amount' => 'decimal:2',

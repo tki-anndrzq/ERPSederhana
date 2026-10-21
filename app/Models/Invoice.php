@@ -24,7 +24,13 @@ class Invoice extends Model
 
     public function payment()
     {
-        return $this->hasOne(Payment::class);
+        // Halaman invoice menampilkan percobaan pembayaran yang paling baru.
+        return $this->hasOne(Payment::class)->latestOfMany();
+    }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
     }
 
     // Dipakai saat pemesanan baru dan saat membuat invoice untuk pemesanan lama.

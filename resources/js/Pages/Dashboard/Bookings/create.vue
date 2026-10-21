@@ -4,9 +4,10 @@ import AdminLayout from '../../../Layouts/AdminLayout.vue';
 
 defineOptions({ layout: AdminLayout });
 
-defineProps({
+const props = defineProps({
     packages: { type: Array, required: true },
     devices: { type: Array, required: true },
+    hariIni: { type: String, required: true },
 });
 
 const form = useForm({
@@ -16,9 +17,16 @@ const form = useForm({
     destination: '',
     rental_package_id: '',
     device_id: '',
-    start_date: '',
+    start_date: props.hariIni,
     end_date: '',
 });
+
+function ubahTanggalMulai() {
+    // Pilih ulang tanggal selesai jika tanggal mulai digeser melewatinya.
+    if (form.end_date && form.end_date < form.start_date) {
+        form.end_date = '';
+    }
+}
 
 function simpanPemesanan() {
     form.post('/bookings', { preserveScroll: true });
@@ -153,6 +161,8 @@ function simpanPemesanan() {
                                 type="date"
                                 class="form-control"
                                 :class="{ 'is-invalid': form.errors.start_date }"
+                                :min="hariIni"
+                                @change="ubahTanggalMulai"
                                 required
                             >
                             <div v-if="form.errors.start_date" class="invalid-feedback" role="alert">{{ form.errors.start_date }}</div>
@@ -165,7 +175,7 @@ function simpanPemesanan() {
                                 type="date"
                                 class="form-control"
                                 :class="{ 'is-invalid': form.errors.end_date }"
-                                :min="form.start_date"
+                                :min="form.start_date || hariIni"
                                 required
                             >
                             <div v-if="form.errors.end_date" class="invalid-feedback" role="alert">{{ form.errors.end_date }}</div>

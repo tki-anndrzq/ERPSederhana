@@ -39,6 +39,8 @@ class BookingController extends Controller
         return Inertia::render('Dashboard/Bookings/create', [
             'packages' => $packages,
             'devices' => $devices,
+            // Batas tanggal dikirim dari server agar sama dengan validasi saat disimpan.
+            'hariIni' => now('Asia/Jakarta')->toDateString(),
         ]);
     }
 
@@ -51,7 +53,7 @@ class BookingController extends Controller
             'destination' => ['required', 'string', 'max:255'],
             'rental_package_id' => ['required', 'integer', 'exists:rental_packages,id'],
             'device_id' => ['required', 'integer', 'exists:devices,id'],
-            'start_date' => ['required', 'date_format:Y-m-d'],
+            'start_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:' . now('Asia/Jakarta')->toDateString()],
             'end_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:start_date'],
         ], [
             'customer_name.required' => 'Nama pelanggan wajib diisi.',
@@ -63,6 +65,7 @@ class BookingController extends Controller
             'device_id.required' => 'Pilih perangkat WiFi.',
             'device_id.exists' => 'Perangkat tidak ditemukan. Muat ulang halaman.',
             'start_date.required' => 'Tanggal mulai wajib diisi.',
+            'start_date.after_or_equal' => 'Tanggal mulai tidak boleh sebelum hari ini.',
             'end_date.required' => 'Tanggal selesai wajib diisi.',
             'end_date.after_or_equal' => 'Tanggal selesai tidak boleh sebelum tanggal mulai.',
         ]);
@@ -88,7 +91,7 @@ class BookingController extends Controller
                     'device_id' => 'Perangkat sudah tidak tersedia. Pilih perangkat lain.',
                 ]);
             }
-
+            //Mengunci harga paket agar tidak ada perubahan harga saat proses booking berlangsung.
             $package = RentalPackage::whereKey($data['rental_package_id'])->lockForUpdate()->firstOrFail();
 
             if (! $package->is_active) {
@@ -151,6 +154,18 @@ class BookingController extends Controller
             if ($booking->status !== 'pending_payment') {
                 return redirect()->route('bookings.show', $id)
                     ->with('error', 'Hanya pemesanan Menunggu Pembayaran yang bisa dibatalkan.');
+            }
+
+            // Jangan melepas perangkat selama checkout Midtrans masih bisa dibayar.
+            $adaPembayaranPending = Invoice::where('booking_id', $id)
+                ->whereHas('payments', function ($query) {
+                    $query->where('status', 'pending');
+                })
+                ->exists();
+
+            if ($adaPembayaranPending) {
+                return redirect()->route('bookings.show', $id)
+                    ->with('error', 'Masih ada pembayaran Midtrans yang pending. Cek status pembayaran dahulu.');
             }
 
             $device = Devices::whereKey($booking->device_id)->lockForUpdate()->firstOrFail();

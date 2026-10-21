@@ -10,11 +10,12 @@ return new class extends Migration
     {
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('invoice_id')->unique()->constrained()->restrictOnDelete();
+            $table->foreignId('invoice_id')->index()->constrained()->restrictOnDelete();
             $table->string('reference')->unique();
-            $table->string('method', 20);
+            $table->string('method', 100);
             $table->decimal('amount', 16, 2);
-            $table->enum('status', ['failed', 'paid']);
+            $table->enum('status', ['failed', 'pending', 'paid']);
+            $table->text('redirect_url')->nullable();
             $table->timestamp('paid_at')->nullable();
             $table->timestamps();
         });

@@ -10,9 +10,6 @@ use App\Http\Controllers\Dashboard\RentalPackageController;
 use App\Http\Controllers\DashboardController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
-
-
 
 Route::get('/', fn (Request $request) => redirect()->route(
     $request->user() ? 'dashboard' : 'login'
@@ -23,10 +20,6 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [LoginController::class, 'authenticate'])->name('login.store');
 });
 
-// Preview pelanggan: hanya data contoh, boleh dibuka tanpa login.
-Route::get('/ui/invoice', fn () => Inertia::render('Customer/Invoice', ['preview' => true]))->name('ui.invoice');
-Route::get('/ui/payment', fn () => Inertia::render('Customer/Payment', ['preview' => true]))->name('ui.payment');
-
 // Pelanggan membuka link token pribadi tanpa login ke dashboard.
 Route::get('/invoices/{token}', [InvoiceController::class, 'show'])
     ->where('token', '[A-Za-z0-9]{64}')->middleware('throttle:60,1')->name('invoices.show');
@@ -34,6 +27,12 @@ Route::get('/invoices/{token}/pay', [PaymentController::class, 'show'])
     ->where('token', '[A-Za-z0-9]{64}')->middleware('throttle:60,1')->name('payments.show');
 Route::post('/invoices/{token}/pay', [PaymentController::class, 'store'])
     ->where('token', '[A-Za-z0-9]{64}')->middleware('throttle:20,1')->name('payments.store');
+Route::post('/invoices/{token}/check', [PaymentController::class, 'check'])
+    ->where('token', '[A-Za-z0-9]{64}')->middleware('throttle:20,1')->name('payments.check');
+
+// Midtrans mengirim notifikasi tanpa login pelanggan atau admin.
+Route::post('/midtrans/notification', [PaymentController::class, 'notification'])
+    ->name('midtrans.notification');
 
 Route::middleware('auth')->group(function () {
     // Package Routes
@@ -63,7 +62,5 @@ Route::middleware('auth')->group(function () {
     Route::post('/bookings/{id}/return', [BookingController::class, 'returnDevice'])->whereNumber('id')->name('bookings.return');
 
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
-    Route::get('/ui/datatables', fn () => Inertia::render('Ui/DataTables'))->name('ui.datatables');
     Route::post('/logout', [LogoutController::class, 'logout'])->name('logout');
-    Route::redirect('/dashboard-ecommerce', '/dashboard');
 });
