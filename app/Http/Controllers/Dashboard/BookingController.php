@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Customer;
 use App\Models\Devices;
+use App\Models\Invoice;
 use App\Models\RentalPackage;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -121,6 +122,8 @@ class BookingController extends Controller
 
             $device->update(['status' => 'reserved']);
 
+            Invoice::buatUntukBooking($booking);
+
             return $booking;
         });
 
@@ -130,10 +133,11 @@ class BookingController extends Controller
 
     public function show($id)
     {
-        $booking = Booking::with(['customer', 'rentalPackage', 'device'])->findOrFail($id);
+        $booking = Booking::with(['customer', 'rentalPackage', 'device', 'invoice.payment'])->findOrFail($id);
 
         return Inertia::render('Dashboard/Bookings/show', [
             'booking' => $booking,
+            'invoiceUrl' => $booking->invoice ? route('invoices.show', $booking->invoice->public_token) : null,
             'success' => session('success'),
             'error' => session('error'),
         ]);
@@ -153,12 +157,79 @@ class BookingController extends Controller
 
             $booking->update(['status' => 'cancelled']);
 
+            Invoice::where('booking_id', $booking->id)->where('status', 'unpaid')
+                ->update(['status' => 'void']);
+
             if ($device->status === 'reserved') {
                 $device->update(['status' => 'available']);
             }
 
             return redirect()->route('bookings.show', $id)
                 ->with('success', 'Pemesanan dibatalkan. Perangkat kembali tersedia.');
+        });
+    }
+
+    public function handover($id)
+    {
+        return DB::transaction(function () use ($id) {
+            $booking = Booking::whereKey($id)->lockForUpdate()->firstOrFail();
+            $invoice = Invoice::where('booking_id', $booking->id)->first();
+
+            if ($booking->status !== 'confirmed' || ! $invoice || $invoice->status !== 'paid') {
+                return redirect()->route('bookings.show', $id)
+                    ->with('error', 'Perangkat hanya bisa diserahkan setelah pembayaran lunas.');
+            }
+
+            $device = Devices::whereKey($booking->device_id)->lockForUpdate()->firstOrFail();
+
+            if ($device->status !== 'reserved') {
+                return redirect()->route('bookings.show', $id)
+                    ->with('error', 'Status perangkat tidak sesuai. Periksa data perangkat.');
+            }
+
+            $booking->update(['status' => 'rented', 'handed_over_at' => now()]);
+            $device->update(['status' => 'rented']);
+
+            return redirect()->route('bookings.show', $id)
+                ->with('success', 'Perangkat sudah diserahkan kepada pelanggan.');
+        });
+    }
+
+    public function returnDevice(Request $request, $id)
+    {
+        $data = $request->validate([
+            'condition' => ['required', 'in:available,maintenance'],
+            'return_notes' => ['nullable', 'string', 'max:2000'],
+        ], [
+            'condition.required' => 'Pilih kondisi perangkat.',
+            'condition.in' => 'Kondisi perangkat tidak valid.',
+            'return_notes.max' => 'Catatan maksimal 2000 karakter.',
+        ]);
+
+        return DB::transaction(function () use ($id, $data) {
+            $booking = Booking::whereKey($id)->lockForUpdate()->firstOrFail();
+
+            if ($booking->status !== 'rented') {
+                return redirect()->route('bookings.show', $id)
+                    ->with('error', 'Hanya perangkat yang sedang disewa yang bisa dikembalikan.');
+            }
+
+            $device = Devices::whereKey($booking->device_id)->lockForUpdate()->firstOrFail();
+
+            if ($device->status !== 'rented') {
+                return redirect()->route('bookings.show', $id)
+                    ->with('error', 'Status perangkat tidak sesuai. Periksa data perangkat.');
+            }
+
+            $booking->update([
+                'status' => 'completed',
+                'returned_at' => now(),
+                'return_notes' => $data['return_notes'] ?? null,
+            ]);
+            $device->update(['status' => $data['condition']]);
+
+            return redirect()->route('bookings.show', $id)
+                ->with('success', 'Pengembalian dicatat. Pemesanan selesai.');
         });
     }
 }

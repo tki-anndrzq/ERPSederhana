@@ -3,6 +3,8 @@
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Dashboard\BookingController;
+use App\Http\Controllers\Dashboard\InvoiceController;
+use App\Http\Controllers\Dashboard\PaymentController;
 use App\Http\Controllers\Dashboard\DevicesController;
 use App\Http\Controllers\Dashboard\RentalPackageController;
 use App\Http\Controllers\DashboardController;
@@ -20,6 +22,18 @@ Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'index'])->name('login');
     Route::post('/login', [LoginController::class, 'authenticate'])->name('login.store');
 });
+
+// Preview pelanggan: hanya data contoh, boleh dibuka tanpa login.
+Route::get('/ui/invoice', fn () => Inertia::render('Customer/Invoice', ['preview' => true]))->name('ui.invoice');
+Route::get('/ui/payment', fn () => Inertia::render('Customer/Payment', ['preview' => true]))->name('ui.payment');
+
+// Pelanggan membuka link token pribadi tanpa login ke dashboard.
+Route::get('/invoices/{token}', [InvoiceController::class, 'show'])
+    ->where('token', '[A-Za-z0-9]{64}')->middleware('throttle:60,1')->name('invoices.show');
+Route::get('/invoices/{token}/pay', [PaymentController::class, 'show'])
+    ->where('token', '[A-Za-z0-9]{64}')->middleware('throttle:60,1')->name('payments.show');
+Route::post('/invoices/{token}/pay', [PaymentController::class, 'store'])
+    ->where('token', '[A-Za-z0-9]{64}')->middleware('throttle:20,1')->name('payments.store');
 
 Route::middleware('auth')->group(function () {
     // Package Routes
@@ -44,6 +58,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
     Route::get('/bookings/{id}', [BookingController::class, 'show'])->whereNumber('id')->name('bookings.show');
     Route::post('/bookings/{id}/cancel', [BookingController::class, 'cancel'])->whereNumber('id')->name('bookings.cancel');
+    Route::post('/bookings/{id}/invoice', [InvoiceController::class, 'store'])->whereNumber('id')->name('bookings.invoice');
+    Route::post('/bookings/{id}/handover', [BookingController::class, 'handover'])->whereNumber('id')->name('bookings.handover');
+    Route::post('/bookings/{id}/return', [BookingController::class, 'returnDevice'])->whereNumber('id')->name('bookings.return');
 
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/ui/datatables', fn () => Inertia::render('Ui/DataTables'))->name('ui.datatables');

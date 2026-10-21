@@ -71,6 +71,9 @@ defineProps({
                                 <span v-else-if="booking.status === 'cancelled'" class="badge bg-danger-subtle text-danger">
                                     Dibatalkan
                                 </span>
+                                <span v-else-if="booking.status === 'confirmed'" class="badge bg-success-subtle text-success">Dikonfirmasi</span>
+                                <span v-else-if="booking.status === 'rented'" class="badge bg-primary-subtle text-primary">Sedang Disewa</span>
+                                <span v-else-if="booking.status === 'completed'" class="badge bg-success-subtle text-success">Selesai</span>
                                 <span v-else>{{ booking.status }}</span>
                             </td>
                             <td>

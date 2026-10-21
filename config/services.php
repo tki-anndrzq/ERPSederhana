@@ -2,6 +2,10 @@
 
 return [
 
+    'mock_payment' => [
+        'enabled' => env('MOCK_PAYMENT_ENABLED', false),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services

@@ -99,6 +99,32 @@ function menuAktif(menu) {
                             <span>DataTables</span>
                         </Link>
                     </li>
+                    <li class="nav-item">
+                        <Link
+                            href="/ui/invoice"
+                            aria-label="Contoh Invoice"
+                            class="nav-link menu-link"
+                            :class="{ active: menuAktif('/ui/invoice') }"
+                            :aria-current="menuAktif('/ui/invoice') ? 'page' : undefined"
+                            @click="$emit('navigate')"
+                        >
+                            <i class="ri-bill-line" aria-hidden="true"></i>
+                            <span>Contoh Invoice</span>
+                        </Link>
+                    </li>
+                    <li class="nav-item">
+                        <Link
+                            href="/ui/payment"
+                            aria-label="Contoh Pembayaran"
+                            class="nav-link menu-link"
+                            :class="{ active: menuAktif('/ui/payment') }"
+                            :aria-current="menuAktif('/ui/payment') ? 'page' : undefined"
+                            @click="$emit('navigate')"
+                        >
+                            <i class="ri-wallet-line" aria-hidden="true"></i>
+                            <span>Contoh Pembayaran</span>
+                        </Link>
+                    </li>
                 </ul>
             </div>
         </nav>

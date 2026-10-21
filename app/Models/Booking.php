@@ -18,6 +18,9 @@ class Booking extends Model
         'daily_rate',
         'total_amount',
         'status',
+        'handed_over_at',
+        'returned_at',
+        'return_notes',
     ];
 
     protected $casts = [
@@ -25,6 +28,8 @@ class Booking extends Model
         'end_date' => 'date:Y-m-d',
         'daily_rate' => 'decimal:2',
         'total_amount' => 'decimal:2',
+        'handed_over_at' => 'datetime:Y-m-d H:i',
+        'returned_at' => 'datetime:Y-m-d H:i',
     ];
 
     public function customer()
@@ -40,5 +45,10 @@ class Booking extends Model
     public function device()
     {
         return $this->belongsTo(Devices::class, 'device_id');
+    }
+
+    public function invoice()
+    {
+        return $this->hasOne(Invoice::class);
     }
 }
