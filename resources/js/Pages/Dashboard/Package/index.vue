@@ -208,7 +208,7 @@ function hapusPaket(item) {
                 <table class="table table-bordered table-striped align-middle">
                     <thead>
                         <tr>
-                            <th>ID</th>
+                            <th>No</th>
                             <th>Nama Paket</th>
                             <th>Destinasi</th>
                             <th>Harga per Hari</th>
@@ -218,8 +218,8 @@ function hapusPaket(item) {
                     </thead>
 
                     <tbody>
-                        <tr v-for="item in package" :key="item.id">
-                            <td>{{ item.id }}</td>
+                        <tr v-for="item, index in package" :key="item.id">
+                            <td>{{ index + 1 }}</td>
                             <td>{{ item.name }}</td>
                             <td>{{ item.destination }}</td>
                             <td>Rp {{ item.daily_price }}</td>

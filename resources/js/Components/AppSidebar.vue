@@ -35,6 +35,7 @@ const page = usePage();
                         </Link>
                     </li>
 
+                    <li class="menu-title"><span>Data Master</span></li>
                     <li class="nav-item">
                         <Link
                             href="/packages"
@@ -44,8 +45,21 @@ const page = usePage();
                             :aria-current="page.url.split('?')[0] === '/packages' ? 'page' : undefined"
                             @click="$emit('navigate')"
                         >
-                            <i class="ri-package-2-line" aria-hidden="true"></i>
+                            <i class="ri-dropbox-line" aria-hidden="true"></i>
                             <span>Paket Sewa</span>
+                        </Link>
+                    </li>
+                    <li class="nav-item">
+                        <Link
+                            href="/devices"
+                            aria-label="Perangkat"
+                            class="nav-link menu-link"
+                            :class="{ active: page.url.split('?')[0] === '/devices' }"
+                            :aria-current="page.url.split('?')[0] === '/devices' ? 'page' : undefined"
+                            @click="$emit('navigate')"
+                        >
+                            <i class="ri-wifi-line" aria-hidden="true"></i>
+                            <span>Perangkat</span>
                         </Link>
                     </li>
 

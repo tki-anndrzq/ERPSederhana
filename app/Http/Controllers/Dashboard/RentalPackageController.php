@@ -3,16 +3,15 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
-use App\Models\RentalPackage as RentalPackageModel;
-use Illuminate\Database\QueryException;
+use App\Models\RentalPackage;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
-class RentalPackage extends Controller
+class RentalPackageController extends Controller
 {
-    public function index()
+      public function index()
     {
-        $package = RentalPackageModel::orderBy('id', 'desc')->get();
+        $package = RentalPackage::orderBy('id', 'desc')->get();
 
         return Inertia::render('Dashboard/Package/index', [
             'package' => $package,
@@ -39,7 +38,7 @@ class RentalPackage extends Controller
             'daily_price.decimal' => 'Harga maksimal memiliki dua angka desimal.',
         ]);
 
-        RentalPackageModel::create($data);
+        RentalPackage::create($data);
 
         return redirect()->route('packages.dashboard')
             ->with('success', 'Paket berhasil ditambahkan.');
@@ -48,7 +47,7 @@ class RentalPackage extends Controller
     // Mengubah paket berdasarkan ID yang dipilih.
     public function update(Request $request, $id)
     {
-        $package = RentalPackageModel::findOrFail($id);
+        $package = RentalPackage::findOrFail($id);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -74,7 +73,7 @@ class RentalPackage extends Controller
     // Menghapus paket yang belum digunakan data lain.
     public function destroy($id)
     {
-        $package = RentalPackageModel::findOrFail($id);
+        $package = RentalPackage::findOrFail($id);
 
         try {
             $package->delete();
