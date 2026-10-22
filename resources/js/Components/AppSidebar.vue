@@ -69,7 +69,19 @@ function menuAktif(menu) {
                             <span>Perangkat</span>
                         </Link>
                     </li>
-
+                    <li class="nav-item">
+                        <Link
+                            href="/users"
+                            aria-label="Pengguna"
+                            class="nav-link menu-link"
+                            :class="{ active: page.url.split('?')[0].startsWith('/bookings') }"
+                            :aria-current="page.url.split('?')[0].startsWith('/bookings') ? 'page' : undefined"
+                            @click="$emit('navigate')"
+                        >
+                            <i class="ri-calendar-check-line" aria-hidden="true"></i>
+                            <span>Pengguna</span>
+                        </Link>
+                    </li>
                     <li class="menu-title"><span>Transaksi</span></li>
                     <li class="nav-item">
                         <Link
@@ -84,6 +96,7 @@ function menuAktif(menu) {
                             <span>Pemesanan</span>
                         </Link>
                     </li>
+
 
                 </ul>
             </div>

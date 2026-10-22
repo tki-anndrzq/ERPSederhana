@@ -1,5 +1,78 @@
 # Rental WiFi
 
+Rental WiFi adalah aplikasi ERP sederhana untuk mengelola penyewaan perangkat
+WiFi. Data paket, perangkat, pemesanan, invoice, dan pembayaran saling terhubung
+agar admin tidak perlu memasukkan ulang data yang sama.
+
+## Modul Utama
+
+| Modul | Fitur |
+| --- | --- |
+| Data Master | Mengelola paket sewa, destinasi, harga per hari, serta perangkat dan status ketersediaannya. |
+| Penyewaan | Mencatat pelanggan dan pemesanan, menghitung biaya sewa, membatalkan pesanan, menyerahkan perangkat, dan mencatat pengembalian. |
+| Penagihan dan Pembayaran | Membuat invoice, menyediakan link invoice pelanggan, membuka pembayaran Midtrans Sandbox, dan memperbarui status pembayaran. |
+
+Dashboard menampilkan ringkasan operasional. Pengiriman email invoice dijalankan
+melalui workflow n8n setelah pemesanan tersimpan.
+
+## Arsitektur Sistem
+
+Aplikasi menggunakan Laravel dan Vue 3 yang dihubungkan oleh Inertia.js dalam
+satu project. Laravel menangani routing, validasi, proses bisnis, dan akses
+database. Vue menampilkan halaman dan form, sedangkan Inertia mengirimkan data
+dari controller Laravel ke halaman Vue sebagai props.
+
+```mermaid
+flowchart TD
+    A[Browser admin atau pelanggan] <--> B[Vue 3 dan Inertia.js]
+    B <--> C[Route dan controller Laravel]
+    C <--> D[Eloquent Model]
+    D <--> E[(PostgreSQL)]
+    C --> F[API Midtrans Sandbox]
+    F -->|Notifikasi pembayaran| C
+    C -->|Webhook invoice dengan Header Auth| G[n8n]
+    G --> H[SMTP]
+    H --> I[Email invoice pelanggan]
+```
+
+### Pembagian Folder
+
+| Lokasi | Tanggung jawab |
+| --- | --- |
+| `routes/web.php` | Mendefinisikan URL aplikasi, middleware login, dan endpoint notifikasi Midtrans. |
+| `app/Http/Controllers/Dashboard` | Menangani paket, perangkat, pemesanan, invoice, dan pembayaran. |
+| `app/Models` | Menyimpan model Eloquent dan relasi antar data. |
+| `database/migrations` | Mendefinisikan struktur tabel database. |
+| `resources/js/Pages` | Menyimpan halaman Vue yang ditampilkan melalui Inertia. |
+| `resources/js/Layouts` | Menyimpan kerangka tampilan seperti sidebar, header, dan area isi halaman. |
+| `config/services.php` | Membaca konfigurasi integrasi Midtrans dan n8n dari `.env`. |
+| `n8n/invoice-created.json` | Workflow yang dapat diimpor ke n8n untuk pengiriman email invoice. |
+
+### Alur Pemesanan dan Pembayaran
+
+1. Admin memilih paket, perangkat yang tersedia, data pelanggan, dan periode sewa.
+2. Laravel memvalidasi input dan menghitung biaya berdasarkan harga paket serta
+   jumlah hari sewa. Data pelanggan, pemesanan, invoice, dan perubahan status
+   perangkat menjadi `reserved` disimpan dalam transaksi database. Perangkat
+   dikunci selama proses ini agar tidak dipesan bersamaan oleh dua admin.
+3. Setelah transaksi tersimpan, Laravel mengirim data invoice ke webhook n8n
+   melalui HTTP dengan header `X-Webhook-Token`. Node IF memeriksa apakah email
+   pelanggan terisi, lalu node SMTP mengirim email berisi tombol menuju invoice.
+   Gangguan n8n tidak membatalkan pemesanan yang sudah tersimpan.
+4. Pelanggan membuka link invoice dengan token acak tanpa perlu login ke
+   dashboard admin, lalu menekan **Bayar Sekarang** untuk menuju Midtrans.
+5. Laravel memverifikasi status pembayaran melalui API Midtrans, baik dari
+   notifikasi Midtrans maupun tombol cek status. Endpoint notifikasi memeriksa
+   signature sebelum mengambil status dari Midtrans. Setelah pembayaran berhasil,
+   invoice menjadi `paid` dan pemesanan menjadi `confirmed`.
+6. Saat admin menyerahkan perangkat, status perangkat menjadi `rented`. Setelah
+   dikembalikan, pemesanan menjadi `completed` dan perangkat menjadi `available`
+   atau `maintenance`, sesuai kondisi pengembalian.
+
+Integrasi API dilakukan dari backend Laravel. Server Key Midtrans dan token
+webhook disimpan di `.env`, sedangkan kredensial SMTP disimpan di n8n. File
+workflow di repository tidak menyertakan kredensial tersebut.
+
 ## Instalasi
 
 Siapkan PHP 8.2, Composer 2, Node.js 22.12+ atau 24, npm, dan PostgreSQL.

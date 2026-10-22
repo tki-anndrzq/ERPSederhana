@@ -57,7 +57,7 @@ function simpanPaket() {
                                 {{ form.errors.name }}
                             </div>
                         </div>
-    
+
                         <div class="col-md-6 mb-3">
                             <label for="package-destination" class="form-label">Destinasi</label>
                             <input
@@ -76,7 +76,7 @@ function simpanPaket() {
                                 {{ form.errors.destination }}
                             </div>
                         </div>
-    
+
                         <div class="col-md-6 mb-3">
                             <label for="package-price" class="form-label">Harga per Hari (Rp)</label>
                             <input
@@ -97,7 +97,7 @@ function simpanPaket() {
                                 {{ form.errors.daily_price }}
                             </div>
                         </div>
-    
+
                         <div class="col-md-6 mb-3 d-flex align-items-center">
                             <div class="form-check mt-md-4">
                                 <input id="package-active" v-model="form.is_active" type="checkbox" class="form-check-input">

@@ -7,7 +7,10 @@ select2(window, $);
 
 // Tambahkan v-select2 pada select biasa. v-model tetap dipakai seperti sebelumnya.
 export default {
-    mounted(element) {
+    async mounted(element) {
+        // Tunggu Vue memilih nilai awal dari v-model sebelum Select2 dibuat.
+        await nextTick();
+
         const dropdown = $(element);
 
         dropdown.select2({
