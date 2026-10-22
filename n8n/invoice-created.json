@@ -1,0 +1,101 @@
+{
+  "name": "Kirim Invoice Pelanggan",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "invoice-created",
+        "authentication": "headerAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        -160,
+        -80
+      ],
+      "name": "Webhook",
+      "id": "c146affa-6cd0-41b7-bf2b-f2104b0c39e8",
+      "webhookId": "6b891e15-e902-4a10-847e-4125b4854ba4"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "08d939c8-cf5d-4322-8b0e-17fd2ff69d22",
+              "leftValue": "={{ $json.body.customer_email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        80,
+        -80
+      ],
+      "name": "If",
+      "id": "620b41c9-b115-479c-8ac5-2633421bb13a"
+    },
+    {
+      "parameters": {
+        "fromEmail": "pengirim@example.com",
+        "toEmail": "={{ $json.body.customer_email }}",
+        "subject": "={{ 'Invoice ' + $json.body.invoice_number }}",
+        "html": "=<div style=\"background-color: #f3f5f9; padding: 24px; font-family: Arial, sans-serif;\">\n\n    <table\n        role=\"presentation\"\n        style=\"width: 100%; max-width: 560px; margin: auto; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px;\"\n    >\n        <tr>\n            <td style=\"padding: 28px; border-bottom: 3px solid #405189;\">\n                <h2 style=\"margin: 0; color: #405189;\">\n                    Rental WiFi\n                </h2>\n\n                <p style=\"margin: 8px 0 0; color: #6b7280; font-size: 14px;\">\n                    Temani perjalananmu, tetap terhubung.\n                </p>\n            </td>\n        </tr>\n\n        <tr>\n            <td style=\"padding: 28px; color: #374151;\">\n\n                <h1 style=\"margin: 0 0 20px; font-size: 22px; color: #1f2937;\">\n                    Invoice pemesananmu sudah siap\n                </h1>\n\n                <p style=\"font-size: 14px; line-height: 1.7;\">\n                    Halo,<br>\n                    Terima kasih sudah melakukan pemesanan perangkat WiFi.\n                    Silakan lihat rincian invoice dan lanjutkan pembayaran\n                    melalui tombol di bawah.\n                </p>\n\n                <div style=\"background-color: #f3f5f9; padding: 18px; border-radius: 8px; margin: 24px 0;\">\n                    <p style=\"margin: 0 0 8px; font-size: 12px; color: #6b7280;\">\n                        NOMOR INVOICE\n                    </p>\n\n                    <p style=\"margin: 0; font-size: 16px; font-weight: bold; color: #1f2937;\">\n                        {{ $json.body.invoice_number }}\n                    </p>\n                </div>\n\n                <div style=\"text-align: center; margin: 28px 0;\">\n                    <a\n                        href=\"{{ $json.body.invoice_url }}\"\n                        style=\"display: inline-block; background-color: #405189; color: #ffffff; text-decoration: none; padding: 15px 30px; border-radius: 8px; font-size: 14px; font-weight: bold;\"\n                    >\n                        Buka Invoice\n                    </a>\n                </div>\n\n                <p style=\"font-size: 13px; line-height: 1.7; color: #6b7280;\">\n                    Setelah invoice terbuka, tekan\n                    <strong>Bayar Sekarang</strong>\n                    untuk melanjutkan pembayaran melalui Midtrans.\n                </p>\n\n                <p style=\"font-size: 12px; line-height: 1.7; color: #6b7280;\">\n                    Jika tombol tidak dapat digunakan, buka tautan berikut:\n                    <br>\n                    <a\n                        href=\"{{ $json.body.invoice_url }}\"\n                        style=\"color: #405189; word-break: break-all;\"\n                    >\n                        {{ $json.body.invoice_url }}\n                    </a>\n                </p>\n\n            </td>\n        </tr>\n\n        <tr>\n            <td style=\"padding: 20px 28px; border-top: 1px solid #e5e7eb;\">\n                <p style=\"margin: 0; font-size: 12px; color: #6b7280; text-align: center;\">\n                    Email ini dikirim otomatis oleh Rental WiFi.\n                </p>\n            </td>\n        </tr>\n    </table>\n\n</div>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        288,
+        -256
+      ],
+      "name": "Send an Email",
+      "id": "309404d5-2f3f-4997-9508-be492b98b13c"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send an Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

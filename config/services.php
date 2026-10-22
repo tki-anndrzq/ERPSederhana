@@ -34,4 +34,8 @@ return [
         'server_key' => env('MIDTRANS_SERVER_KEY'),
         'is_production' => env('MIDTRANS_IS_PRODUCTION', false),
     ],
+    'n8n' => [
+        'webhook_url' => env('N8N_WEBHOOK_URL'),
+        'webhook_token' => env('N8N_WEBHOOK_TOKEN'),
+    ],
 ];

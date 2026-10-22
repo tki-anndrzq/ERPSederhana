@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class BookingController extends Controller
 {
@@ -130,8 +132,40 @@ class BookingController extends Controller
             return $booking;
         });
 
+        // Pemesanan dan invoice sudah berhasil disimpan sebelum menghubungi n8n.
+        try {
+            $invoice = Invoice::where('booking_id', $booking->id)->firstOrFail();
+
+            $response = Http::withHeaders([
+                'X-Webhook-Token' => config('services.n8n.webhook_token'),
+            ])
+                ->connectTimeout(3)
+                ->timeout(10)
+                ->post(config('services.n8n.webhook_url'), [
+                    'customer_name' => $data['customer_name'],
+                    'customer_email' => $data['customer_email'] ?? '',
+                    'invoice_number' => $invoice->invoice_number,
+                    'invoice_url' => route('invoices.show', $invoice->public_token),
+                ]);
+
+            $notifikasiDiterima = $response->successful();
+        } catch (\Throwable $exception) {
+            // Gangguan n8n tidak membatalkan pemesanan yang sudah tersimpan.
+            $notifikasiDiterima = false;
+        }
+
+        $pesan = 'Pemesanan berhasil dibuat. Perangkat sudah dipesan.';
+
+        if (! $notifikasiDiterima) {
+            $pesan .= ' Namun, notifikasi invoice belum berhasil diteruskan ke n8n.';
+
+            Log::warning('Notifikasi invoice belum diterima n8n.', [
+                'booking_id' => $booking->id,
+            ]);
+        }
+
         return redirect()->route('bookings.show', $booking->id)
-            ->with('success', 'Pemesanan berhasil dibuat. Perangkat sudah dipesan.');
+            ->with('success', $pesan);
     }
 
     public function show($id)

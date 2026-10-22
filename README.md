@@ -4,6 +4,7 @@
 
 Siapkan PHP 8.2, Composer 2, Node.js 22.12+ atau 24, npm, dan PostgreSQL.
 Aktifkan ekstensi PHP `pdo_pgsql` dan `curl`.
+Siapkan n8n dan akun SMTP untuk mengaktifkan pengiriman email invoice otomatis.
 
 1. Buka terminal di folder project, lalu install dependensi:
 
@@ -71,6 +72,83 @@ Aktifkan ekstensi PHP `pdo_pgsql` dan `curl`.
    Jika `npm` bisa digunakan langsung di terminalmu, kamu boleh memakai
    `npm ci` dan `npm run dev`.
 
+### Pengaturan n8n untuk email invoice
+
+Workflow tersedia di [n8n/invoice-created.json](n8n/invoice-created.json).
+File ini tidak menyertakan credential, token, data pelanggan, atau data percobaan.
+Alamat pengirim menggunakan placeholder `pengirim@example.com`.
+Workflow diimpor dalam keadaan nonaktif sampai credential milik pengguna dipasang.
+
+1. Jalankan n8n, lalu buka `http://localhost:5678`.
+   Jika n8n sudah terpasang secara global melalui npm, jalankan `n8n`.
+   Untuk pilihan pemasangan lain, ikuti [panduan instalasi n8n](https://docs.n8n.io/hosting/installation/).
+
+2. Buat workflow di n8n. Pilih menu **tiga titik > Import from File**, lalu
+   pilih file `n8n/invoice-created.json` dari repository ini.
+
+3. Buat token rahasia sendiri dari terminal lokal:
+
+   ```powershell
+   php -r "echo bin2hex(random_bytes(32)), PHP_EOL;"
+   ```
+
+   Pada node **Webhook**, buat credential **Header Auth**:
+
+   - **Name**: `X-Webhook-Token`.
+   - **Value**: hasil token yang baru dibuat.
+
+   Pilih credential tersebut pada node Webhook. Pertahankan metode `POST`,
+   path `invoice-created`, dan respons **Immediately**.
+
+4. Pada node **Send an Email**, buat dan pilih credential **SMTP** milik sendiri.
+   Isi akun, password SMTP atau App Password, host, port, dan pengaturan TLS
+   sesuai penyedia email. Untuk Gmail, gunakan `smtp.gmail.com`, port `465`,
+   SSL/TLS aktif, dan App Password dari akun dengan Verifikasi 2 Langkah.
+   Rujukan: [pengaturan Gmail di n8n](https://docs.n8n.io/integrations/builtin/credentials/send-email/gmail/).
+
+   Ganti **From Email** dari `pengirim@example.com` menjadi alamat akun SMTP.
+   Kolom **To Email** sudah menggunakan Expression:
+
+   ```text
+   {{ $json.body.customer_email }}
+   ```
+
+5. Simpan perubahan dan klik **Publish**. Salin **Production URL** dari node
+   Webhook, lalu isi konfigurasi `.env` Laravel:
+
+   ```dotenv
+   N8N_WEBHOOK_URL=http://localhost:5678/webhook/invoice-created
+   N8N_WEBHOOK_TOKEN=isi_token_yang_sama_dengan_header_auth
+   ```
+
+   Sesuaikan URL jika n8n berjalan di alamat atau port lain. Gunakan `/webhook/`
+   untuk workflow yang sudah dipublish. URL `/webhook-test/` hanya dipakai ketika
+   **Listen for test event** sedang aktif.
+
+6. Muat ulang konfigurasi Laravel:
+
+   ```powershell
+   php artisan config:clear
+   ```
+
+7. Buat pemesanan dengan alamat email penerima yang dapat diperiksa.
+   Setelah pemesanan dan invoice tersimpan, Laravel mengirim data ke n8n.
+   Node **IF** meneruskan email yang terisi ke **Send an Email**.
+   Jika email kosong, workflow berhenti tanpa mengirim email.
+
+   Periksa tab **Executions** di n8n untuk melihat hasil pengiriman.
+   Respons Webhook **Immediately** hanya menandakan data diterima n8n;
+   keberhasilan pengiriman email diperiksa pada node Send an Email.
+   Jika n8n tidak dapat dihubungi, pemesanan tetap tersimpan dan Laravel
+   menampilkan pemberitahuan bahwa notifikasi belum berhasil diteruskan.
+
+Simpan token di `.env` dan password SMTP di credential n8n milik sendiri.
+File `.env` tidak disertakan ke Git. Saat membagikan ulang workflow, hapus
+credential, data yang dipin, serta alamat email pribadi dari salinan export.
+Link invoice mengikuti `APP_URL`; alamat `127.0.0.1` hanya dapat dibuka dari
+komputer yang menjalankan aplikasi. Sesuaikan `APP_URL` dengan alamat aplikasi
+yang memang dapat diakses penerima jika aplikasi dijalankan di server.
+
 ## Cara Penggunaan
 
 1. **Login** menggunakan akun demo dari seeder:
@@ -89,6 +167,8 @@ Aktifkan ekstensi PHP `pdo_pgsql` dan `curl`.
 4. **Buat pemesanan** melalui menu **Transaksi > Pemesanan > Tambah Pemesanan**.
    Isi data pelanggan, tujuan perjalanan, paket, perangkat, serta tanggal sewa.
    Setelah disimpan, total harga dan invoice dibuat otomatis.
+   Jika email diisi dan n8n sudah dikonfigurasi, workflow mengirim email HTML
+   dengan tombol **Buka Invoice**. Email pelanggan bersifat opsional.
 
 5. **Bagikan invoice** dengan membuka Detail Pemesanan, lalu klik **Salin Link**.
    Pelanggan dapat membuka link invoice tanpa login ke dashboard.
