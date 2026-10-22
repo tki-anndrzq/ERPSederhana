@@ -74,8 +74,8 @@ function menuAktif(menu) {
                             href="/users"
                             aria-label="Pengguna"
                             class="nav-link menu-link"
-                            :class="{ active: page.url.split('?')[0].startsWith('/bookings') }"
-                            :aria-current="page.url.split('?')[0].startsWith('/bookings') ? 'page' : undefined"
+                            :class="{ active: page.url.split('?')[0].startsWith('/users') }"
+                            :aria-current="page.url.split('?')[0].startsWith('/users') ? 'page' : undefined"
                             @click="$emit('navigate')"
                         >
                             <i class="ri-calendar-check-line" aria-hidden="true"></i>
